@@ -2,5 +2,5 @@
 from django.db import models
 
 
-class TestModel(models.Model):
+class ModelUnderTest(models.Model):
     value = models.IntegerField(unique=True)

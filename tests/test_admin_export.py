@@ -4,12 +4,12 @@ from admin_export.views import AdminExport
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
 import pytest
-from tests.models import TestModel
+from .models import ModelUnderTest
 
 
-class TestModelAdmin(admin.ModelAdmin):
+class ModelAdminTest(admin.ModelAdmin):
     def get_queryset(self, request):
-        return super(TestModelAdmin, self).get_queryset(request).filter(value__lt=request.magic)
+        return super(ModelAdminTest, self).get_queryset(request).filter(value__lt=request.magic)
 
 
 def queryset_valid(request, queryset):
@@ -19,27 +19,27 @@ def queryset_valid(request, queryset):
 @pytest.mark.django_db
 def test_queryset_from_admin(rf, admin_user):
     for x in range(100):
-        TestModel.objects.get_or_create(value=x)
-    assert TestModel.objects.count() >= 100
+        ModelUnderTest.objects.get_or_create(value=x)
+    assert ModelUnderTest.objects.count() >= 100
 
     request = rf.get("/")
     request.user = admin_user
     request.magic = random.randint(10, 90)
     request.GET = {
-        "ct": ContentType.objects.get_for_model(TestModel).pk,
-        "ids": ",".join(str(id) for id in TestModel.objects.all().values_list("pk", flat=True))
+        "ct": ContentType.objects.get_for_model(ModelUnderTest).pk,
+        "ids": ",".join(str(id) for id in ModelUnderTest.objects.all().values_list("pk", flat=True))
     }
 
     old_registry = admin.site._registry
     admin.site._registry = {}
-    admin.site.register(TestModel, TestModelAdmin)
-    assert queryset_valid(request, admin.site._registry[TestModel].get_queryset(request))
-    assert not queryset_valid(request, TestModel.objects.all())
+    admin.site.register(ModelUnderTest, ModelAdminTest)
+    assert queryset_valid(request, admin.site._registry[ModelUnderTest].get_queryset(request))
+    assert not queryset_valid(request, ModelUnderTest.objects.all())
 
     admin_export_view = AdminExport()
     admin_export_view.request = request
     admin_export_view.args = ()
     admin_export_view.kwargs = {}
-    assert admin_export_view.get_model_class() == TestModel
-    assert queryset_valid(request, admin_export_view.get_queryset(TestModel))
+    assert admin_export_view.get_model_class() == ModelUnderTest
+    assert queryset_valid(request, admin_export_view.get_queryset(ModelUnderTest))
     admin.site._registry = old_registry
