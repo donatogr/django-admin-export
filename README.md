@@ -32,7 +32,7 @@ Running tests
 -------------
 
 1. Acquire a checkout of the repository
-2. ``pip install -e . -r test_requirements.txt``
+2. ``pip install -e . -r requirements_test.txt``
 3. ``py.test tests``
 
 Or to run tests with all supported environments:
