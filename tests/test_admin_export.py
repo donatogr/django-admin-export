@@ -3,6 +3,8 @@ import random
 from admin_export.views import AdminExport
 from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
+from django.core.urlresolvers import reverse
+from django.utils.http import urlencode
 import pytest
 from .models import ModelUnderTest
 
@@ -47,7 +49,7 @@ def test_queryset_from_admin(rf, admin_user):
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('output_name', ['html', 'csv'])
-def test_AdminExport_list_to_method_response(admin_user, output_name):
+def test_AdminExport_list_to_method_response_should_return_200(admin_user, output_name):
     for x in range(3):
         ModelUnderTest.objects.get_or_create(value=x)
 
@@ -57,3 +59,22 @@ def test_AdminExport_list_to_method_response(admin_user, output_name):
     method = getattr(admin, 'list_to_{}_response'.format(output_name))
     res = method(data)
     assert res.status_code == 200
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('output_format', ['html', 'csv', 'xls'])
+def test_AdminExport_post_should_return_200(admin_client, admin_user, output_format):
+    for x in range(3):
+        ModelUnderTest.objects.get_or_create(value=x)
+
+    params = {
+        'ct': ContentType.objects.get_for_model(ModelUnderTest).pk,
+        'ids': ','.join(repr(pk) for pk in ModelUnderTest.objects.values_list('pk', flat=True))
+    }
+    data = {
+        "value": "on",
+        "__format": output_format,
+    }
+    url = "{}?{}".format(reverse('admin_export:export'), urlencode(params))
+    response = admin_client.post(url, data=data)
+    assert response.status_code == 200
