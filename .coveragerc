@@ -1,5 +1,7 @@
 [run]
 branch = True
+source =
+    admin_export
 omit =
     *test*.py
     tests/*

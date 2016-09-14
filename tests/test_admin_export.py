@@ -43,3 +43,17 @@ def test_queryset_from_admin(rf, admin_user):
     assert admin_export_view.get_model_class() == ModelUnderTest
     assert queryset_valid(request, admin_export_view.get_queryset(ModelUnderTest))
     admin.site._registry = old_registry
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize('output_name', ['html', 'csv'])
+def test_AdminExport_list_to_method_response(admin_user, output_name):
+    for x in range(3):
+        ModelUnderTest.objects.get_or_create(value=x)
+
+    admin = AdminExport()
+    data = admin.report_to_list(ModelUnderTest.objects.all(), ['value'], admin_user)
+
+    method = getattr(admin, 'list_to_{}_response'.format(output_name))
+    res = method(data)
+    assert res.status_code == 200
