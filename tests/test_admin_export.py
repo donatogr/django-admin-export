@@ -6,7 +6,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse
 from django.utils.http import urlencode
 import pytest
-from .models import ModelUnderTest
+from .models import ModelUnderTest, ModelWithRelated
 
 
 class ModelAdminTest(admin.ModelAdmin):
@@ -63,7 +63,7 @@ def test_AdminExport_list_to_method_response_should_return_200(admin_user, outpu
 
 @pytest.mark.django_db
 @pytest.mark.parametrize('output_format', ['html', 'csv', 'xls'])
-def test_AdminExport_post_should_return_200(admin_client, admin_user, output_format):
+def test_AdminExport_post_should_return_200(admin_client, output_format):
     for x in range(3):
         ModelUnderTest.objects.get_or_create(value=x)
 
@@ -78,3 +78,50 @@ def test_AdminExport_post_should_return_200(admin_client, admin_user, output_for
     url = "{}?{}".format(reverse('admin_export:export'), urlencode(params))
     response = admin_client.post(url, data=data)
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_AdminExport_get_should_return_200(admin_client):
+    for x in range(3):
+        ModelUnderTest.objects.get_or_create(value=x)
+
+    params = {
+        'ct': ContentType.objects.get_for_model(ModelUnderTest).pk,
+        'ids': ','.join(repr(pk) for pk in ModelUnderTest.objects.values_list('pk', flat=True))
+    }
+    url = "{}?{}".format(reverse('admin_export:export'), urlencode(params))
+    response = admin_client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_AdminExport_with_related_get_should_return_200(admin_client):
+    mut, created = ModelUnderTest.objects.get_or_create(value=1)
+    for x in range(3):
+        ModelWithRelated.objects.get_or_create(value=x, mut=mut)
+
+    params = {
+        'related': True,
+        'model_ct': ContentType.objects.get_for_model(ModelWithRelated).pk,
+        'field': 'mut',
+        'path': 'mut.value',
+    }
+    url = "{}?{}".format(reverse('admin_export:export'), urlencode(params))
+    response = admin_client.get(url)
+    assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_AdminExport_with_unregistered_model_should_raise_ValueError(admin_client):
+    mut, created = ModelUnderTest.objects.get_or_create(value=1)
+    for x in range(3):
+        ModelWithRelated.objects.get_or_create(value=x, mut=mut)
+
+    params = {
+        'ct': ContentType.objects.get_for_model(ModelWithRelated).pk,
+        'ids': ','.join(repr(pk) for pk in ModelWithRelated.objects.values_list('pk', flat=True))
+    }
+    url = "{}?{}".format(reverse('admin_export:export'), urlencode(params))
+
+    with pytest.raises(ValueError):
+        admin_client.get(url)
