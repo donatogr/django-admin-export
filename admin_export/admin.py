@@ -3,6 +3,7 @@ from django.contrib import admin
 from django.contrib.contenttypes.models import ContentType
 from django.core.urlresolvers import reverse, NoReverseMatch
 from django.http import HttpResponseRedirect
+from django.utils.translation import ugettext_lazy as _
 
 
 def export_simple_selected_objects(modeladmin, request, queryset):
@@ -21,6 +22,6 @@ def export_simple_selected_objects(modeladmin, request, queryset):
     else:
         return HttpResponseRedirect("%s?ct=%s&ids=%s" % (url, ct.pk, ",".join(str(pk) for pk in selected)))
 
-export_simple_selected_objects.short_description = "Export selected items..."
+export_simple_selected_objects.short_description = _("Export selected items...")
 
 admin.site.add_action(export_simple_selected_objects)
