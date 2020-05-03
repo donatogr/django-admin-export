@@ -117,5 +117,5 @@ class AdminExportRelated(GetFieldsMixin, TemplateView):
         context['model_ct'] = model_ct.id
         context['field_name'] = field_name
         context['table'] = True
-        context = dict(context.items() + field_data.items())
+        context = dict(list(context.items()) + list(field_data.items()))
         return self.render_to_response(context)
