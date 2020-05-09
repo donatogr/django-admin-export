@@ -1,1 +1,2 @@
 recursive-include admin_export/templates *
+recursive-include admin_export/locale *
